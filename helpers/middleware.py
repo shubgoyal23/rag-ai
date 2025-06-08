@@ -1,0 +1,34 @@
+from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.responses import JSONResponse
+from helpers.jwt_utils import verify_token
+from helpers.mongo_connect import mongo_find_one
+
+INCLUDE_PATHS = ["/chat", "/user", "/document", "/link", "/status/"]
+
+class JWTMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        path = request.url.path
+        if path not in INCLUDE_PATHS:
+            return await call_next(request)
+
+        # 1. Check cookie
+        token = request.cookies.get("access_token")
+
+        if not token:
+            return JSONResponse(status_code=401, content={"detail": "user not logged in"})
+
+        payload = verify_token(token)
+        if not payload:
+            return JSONResponse(status_code=401, content={"detail": "Invalid token"})
+        
+        user_id = payload.get("sub")
+        if not user_id:
+            return JSONResponse(status_code=401, content={"detail": "Invalid token"})
+        
+        user = mongo_find_one({"_id": user_id}, "users").select("_id", "email", "plan")
+        if not user:
+            return JSONResponse(status_code=401, content={"detail": "Invalid token"})
+
+        request.state.user = user
+        return await call_next(request)
+
