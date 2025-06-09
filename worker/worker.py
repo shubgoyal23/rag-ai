@@ -9,7 +9,7 @@ from worker.process_doc import process_doc_handler, process_links_handler, proce
 def queue_reader():
     while True:
         try:
-            job_id = redis_get_queue_item()
+            job_id = redis_get_queue_item(timeout=0)
             if job_id:
                 job_data = redis_queue_get_data(job_id)
                 if job_data:
