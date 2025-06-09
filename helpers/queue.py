@@ -1,15 +1,13 @@
 from typing import Any, Dict
-from helpers.redis import redis_queue_add, redis_queue_get
+from helpers.redis import redis_queue_add, redis_queue_get_data
 
 
-def queue_doc_task(user_id: str, job_id: str, priority: int, input: str) -> bool:
-    return redis_queue_add(job_id, user_id, priority, "process_doc", input)
+def queue_task_helper(user_id: str, job_id: str, type: str, input: str, doc_id: str) -> bool:
+    return redis_queue_add(job_id, user_id, type, input, doc_id)
 
-def queue_link_task(user_id: str, job_id: str, priority: int, input: str) -> bool:
-    return redis_queue_add(job_id, user_id, priority, "process_link", input)
  
 def queue_status(job_id: str) -> Dict[str, Any] | str:
-    return redis_queue_get(job_id)
+    return redis_queue_get_data(job_id)
 
 
 # queue_type: doc, link

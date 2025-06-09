@@ -9,7 +9,7 @@ milvus_client = MilvusClient(uri=milvus_uri, token=token)
 print(f"Connected to DB: {milvus_uri} successfully")
 
 # Collection configuration
-collection_name = "pdf_vector"
+collection_name = "doc_vectors"
 dim_txt = 1536
 metric="COSINE"
 index="HNSW"
@@ -29,12 +29,15 @@ def create_Collection():
 
 	# Add fields matching your data structure
 	schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True, auto_id=True,)
-	schema.add_field(field_name="pdf_vector", datatype=DataType.FLOAT_VECTOR, dim=dim_txt)
+	schema.add_field(field_name="job_id", datatype=DataType.VARCHAR, max_length=256)
+	schema.add_field(field_name="reference_id", datatype=DataType.VARCHAR, max_length=256)
+	schema.add_field(field_name="content", datatype=DataType.VARCHAR, max_length=2000)
+	schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=dim_txt)
 
 	# Create index parameters for cosine similarity (CLIP vectors are normalized)
 	index_params = milvus_client.prepare_index_params()
 	index_params.add_index(
-	    field_name="pdf_vector",
+	    field_name="vector",
 	    metric_type=metric, 
 	    index_type=index,
 	)
@@ -53,14 +56,14 @@ if not milvus_client.has_collection(collection_name):
 
 
 ## insert data into milvus, same as insert_data
-def insert_vector_data(entities) -> Dict[str, Any] | str:
+def insert_vector_data(entities) -> str:
     try:
         result = milvus_client.insert(collection_name, entities)
-        print(result)
         flush_collection()
-        return result
+        return True
     except Exception as e:
-        return (f"Error inserting data: {e}")
+        print((f"Error inserting data: {e}"))
+        return False
 
 def flush_collection():
     milvus_client.flush(collection_name)
@@ -86,14 +89,14 @@ def search_similar_pdf(query_vector, top_k=5):
 def search_similar_text(query_vector, top_k=5):
     res = milvus_client.search(
     collection_name=collection_name,
-    anns_field="pdf_vector",
+    anns_field="vector",
     data=[query_vector],
     limit=top_k,
     search_params={"metric_type": metric},
-    output_fields=["url", "prod_id", "prod_desc"]  # Return URL field
+    output_fields=["job_id", "reference_id", "content"]  # Return URL field
 	)
     ret = [
-    f'{hit["distance"]}, {hit["entity"]["url"]}, {hit["entity"]["prod_id"]}, {hit["entity"]["prod_desc"]}'
+    f'{hit["distance"]}, {hit["entity"]["job_id"]}, {hit["entity"]["reference_id"]}, {hit["entity"]["content"]}'
     for hit in res[0]
 	]
     return ret

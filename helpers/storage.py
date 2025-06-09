@@ -11,7 +11,7 @@ BUCKET_NAME = "rag_doc_storage"
 def upload_to_gcs(file_obj, filename):
     client = storage.Client()
     bucket = client.bucket(BUCKET_NAME)
-    blob_name = f"uploads/{uuid.uuid4()}_{filename}"
+    blob_name = f"uploads/{filename}"
     blob = bucket.blob(blob_name)
     blob.upload_from_file(file_obj)
     return blob_name

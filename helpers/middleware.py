@@ -2,8 +2,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.responses import JSONResponse
 from helpers.jwt_utils import verify_token
 from helpers.mongo_connect import mongo_find_one
-
-INCLUDE_PATHS = ["/chat", "/user", "/document", "/link", "/status/"]
+from bson.objectid import ObjectId
+INCLUDE_PATHS = ["/chat", "/user", "/upload", "/link", "/status/"]
 
 class JWTMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
@@ -25,10 +25,12 @@ class JWTMiddleware(BaseHTTPMiddleware):
         if not user_id:
             return JSONResponse(status_code=401, content={"detail": "Invalid token"})
         
-        user = mongo_find_one({"_id": user_id}, "users").select("_id", "email", "plan")
+        user = mongo_find_one({"_id": ObjectId(user_id)}, "users")
         if not user:
             return JSONResponse(status_code=401, content={"detail": "Invalid token"})
-
+        if not user.get("approved"):
+            return JSONResponse(status_code=401, content={"detail": "User not approved"})
+        del user["password"]
         request.state.user = user
         return await call_next(request)
 

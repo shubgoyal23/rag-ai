@@ -9,4 +9,4 @@ wheels/
 # Virtual environments
 .venv
 .env
-habit-tracker-456012-83458ad56f5d.json
+gcs-uploader.json
