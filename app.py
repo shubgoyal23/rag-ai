@@ -4,8 +4,10 @@ from worker.worker import queue_reader
 
 
 def main():
-    print("Worker started")
-    queue_reader()
+    try:
+        queue_reader()
+    except Exception as e:
+        print(e)
 
 if __name__ == "__main__":
     main()
