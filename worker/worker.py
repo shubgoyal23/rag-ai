@@ -10,7 +10,6 @@ def queue_reader():
     while True:
         try:
             job_id = redis_get_queue_item()
-            print(job_id)
             if job_id:
                 job_data = redis_queue_get_data(job_id)
                 if job_data:
