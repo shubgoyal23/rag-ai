@@ -15,7 +15,8 @@ from helpers.password_utils import hash_password, verify_password
 from datetime import timedelta
 from fastapi.middleware.cors import CORSMiddleware
 from helpers.storage import upload_to_gcs
-
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 class Message(BaseModel):
     message: str
@@ -41,6 +42,12 @@ app.add_middleware(
     allow_methods=["*"],              # Allow all HTTP methods
     allow_headers=["*"],              # Allow all headers
 )
+
+app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
+
+@app.get("/")
+def serve_react_app():
+    return FileResponse("frontend/dist/index.html")
 
 
 @app.get("/ping")
@@ -68,7 +75,7 @@ def login(data: LoginRequest, response: Response):
         key="access_token",
         value=token,
         httponly=True,
-        secure=True,
+        secure=False,  # Should be False for local HTTP (only True in HTTPS)
         samesite="Lax",
         max_age=86400,
         path="/",
@@ -90,7 +97,7 @@ def register(data: RegisterRequest, response: Response):
 
 @app.post("/logout")
 def logout(response: Response):
-    response.cookies.delete("access_token")
+    response.delete_cookie("access_token")
     return {"message": "Logged out successfully", "success": True}
 
 @app.get("/user")
@@ -143,4 +150,4 @@ def link(request: Request, message: LinkMessage):
 @app.get("/status/{id}")
 def get_status(id: str):
     job_data = redis_queue_get_data(id)
-    return {"status": "success", "job_data": job_data}
+    return {"status": "success", "data": job_data}
