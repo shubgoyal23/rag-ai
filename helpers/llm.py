@@ -1,8 +1,6 @@
 from typing import List
 from openai import OpenAI
 
-from helpers.milvus import search_similar_text
-
 client = OpenAI()
 
 def create_embedding(text: List[str]) -> List[str]:

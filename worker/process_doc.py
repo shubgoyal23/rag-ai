@@ -49,7 +49,7 @@ def process_doc_handler(job_id: str, job_data: Dict[str, Any]):
         data = []
         
         for doc in split_docs:
-            data.append({"job_id": job_id, "reference_id": f"page No: {doc.metadata.get("page_label")}", "content": doc.page_content})
+            data.append({"job_id": job_id, "reference_id": f"page No: {doc.metadata.get("page_label")}", "content": doc.page_content, "metadata": doc.metadata})
             
         response = create_embedding([doc.page_content for doc in split_docs])
         for i in range(len(response)):
@@ -65,14 +65,14 @@ def process_doc_handler(job_id: str, job_data: Dict[str, Any]):
 
 def bs4_extractor(html: str) -> str:
     soup = BeautifulSoup(html, "lxml")
-    return re.sub(r"\n\n+", "\n\n", soup.text).strip()
+    return re.sub(r"\n\n+", "\n\n", soup.get_text()).strip()
 
 def process_links_handler(job_id: str, job_data: Dict[str, Any]):
     try:
         loader = RecursiveUrlLoader(
         job_data["doc_id"],
-        max_depth=1,
-        use_async=False,
+        max_depth=2,
+        use_async=True,
         extractor=bs4_extractor,
         metadata_extractor=None,
         exclude_dirs=(),
@@ -91,7 +91,7 @@ def process_links_handler(job_id: str, job_data: Dict[str, Any]):
         data = []
         
         for doc in split_docs:
-            data.append({"job_id": job_id, "reference_id": f"page No: {doc.metadata.get("page_label")}", "content": doc.page_content})
+            data.append({"job_id": job_id, "reference_id": f"page No: {doc.metadata.get("page_label")}", "content": doc.page_content, "metadata": doc.metadata})
             
         response = create_embedding([doc.page_content for doc in split_docs])
         for i in range(len(response)):
@@ -102,7 +102,7 @@ def process_links_handler(job_id: str, job_data: Dict[str, Any]):
         return "Document processed successfully" 
     except Exception as e:
         redis_queue_data_change_status(job_id, "failed", "Document processing failed")
-        print(e)
+        print("process_links_handler", e)
         return "Document processing failed"
 
 def process_message_handler(job_id: str, job_data: Dict[str, Any]):
@@ -111,17 +111,15 @@ def process_message_handler(job_id: str, job_data: Dict[str, Any]):
         reference_id = job_data["doc_id"]
         response = create_embedding([message])
         if reference_id:
-            context = search_similar_text(response[0].embedding)
+            context = search_similar_text(response[0].embedding, expr=f"job_id == '{reference_id}'")
         else:
-            context = "no context use your general knowledge to answer the user query"
+            context = "Context not available for this document use your general knowledge to answer the user query, but inform the user that context is not available for this document"
         SYSTEM_PROMPT = f"""
         You are a helpfull AI Assistant who asnweres user query based on the
-        available context
-        retrieved from a PDF file along with page_contents and page number.
+        available context retrieved from a document along with page_contents and page number.
 
-        You should only ans the user based on the following context and navigate
-        the user
-        to open the right page number to know more.
+        You should only answer the user based on the context and navigate
+        the user to open the right page number or link to read more or to download the document.
 
         Context:
         {context}

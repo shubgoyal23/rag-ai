@@ -1,6 +1,5 @@
 import os
 from pymilvus import DataType, MilvusClient
-from typing import Dict, Any
 
 # Initialize Milvus client
 milvus_uri = os.getenv("MILVUS_URI")
@@ -14,7 +13,7 @@ dim_txt = 1536
 metric="COSINE"
 index="HNSW"
 
-# milvus_client.drop_collection("prod_vectors_flat_cosine")
+
 def create_Collection():
     # Clean up existing collection
 	if milvus_client.has_collection(collection_name):
@@ -68,25 +67,9 @@ def insert_vector_data(entities) -> str:
 def flush_collection():
     milvus_client.flush(collection_name)
 
-# Search image function
-def search_similar_pdf(query_vector, top_k=5):
-    res = milvus_client.search(
-    collection_name=collection_name,
-    anns_field="pdf_vector",
-    data=[query_vector],
-    limit=top_k,
-    search_params={"metric_type": metric},
-    output_fields=["url", "prod_id"]
-	)
-    ret = [
-    f'{hit["distance"]}, {hit["entity"]["url"]}, {hit["entity"]["prod_id"]}'
-    for hit in res[0]
-	]
-    return ret
-
 
 # Search text function
-def search_similar_text(query_vector, top_k=5):
+def search_similar_text(query_vector, top_k=5, expr=""):
     res = milvus_client.search(
     collection_name=collection_name,
     anns_field="vector",
