@@ -128,7 +128,8 @@ def upload(request: Request, file: UploadFile = File(...)):
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in [".pdf", ".txt", ".docx"]:
         raise HTTPException(status_code=400, detail="Unsupported file type")
-    file_id = upload_to_gcs(file.file, job_id+ext)
+    file_name = job_id + file.filename.replace(" ", "_")
+    file_id = upload_to_gcs(file.file, file_name)
     
     # queue document task
     if not queue_task_helper(user.get("_id"), job_id, "process_doc", "NA", file_id):

@@ -4,7 +4,7 @@ from typing import Any, Dict
 from helpers.llm import chat_completion, create_embedding
 from helpers.milvus import insert_vector_data, search_similar_text
 from helpers.redis import redis_queue_data_change_status
-from helpers.storage import download_from_gcs
+from helpers.storage import delete_file_from_gcs, download_from_gcs
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import (
     PyPDFLoader,
@@ -45,6 +45,7 @@ def process_doc_handler(job_id: str, job_data: Dict[str, Any]):
         )
         split_docs = text_splitter.split_documents(documents=doc)
         os.remove(temp_path)
+        delete_file_from_gcs(file_name)
         data = []
         
         for doc in split_docs:
