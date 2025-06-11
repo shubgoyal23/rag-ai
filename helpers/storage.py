@@ -1,15 +1,20 @@
 # Imports the Google Cloud client library
 import io
-import uuid
+import os
 from google.cloud import storage
+from google.oauth2 import service_account
+import base64
+import json
 
+sa_info = json.loads(base64.b64decode(os.getenv("GCS_SERVICE_ACCOUNT")).decode("utf-8"))
+credentials = service_account.Credentials.from_service_account_info(sa_info)
 
 # The name for the new bucket
 BUCKET_NAME = "rag_doc_storage"
 
 
 def upload_to_gcs(file_obj, filename):
-    client = storage.Client()
+    client = storage.Client(credentials=credentials)
     bucket = client.bucket(BUCKET_NAME)
     blob_name = f"uploads/{filename}"
     blob = bucket.blob(blob_name)
