@@ -23,7 +23,7 @@ def upload_to_gcs(file_obj, filename):
 
 
 def download_from_gcs(blob_name: str):
-    client = storage.Client()
+    client = storage.Client(credentials=credentials)
     bucket = client.bucket(BUCKET_NAME)
     blob = bucket.blob(blob_name)
 
@@ -34,7 +34,7 @@ def download_from_gcs(blob_name: str):
 
 
 def delete_file_from_gcs(blob_name: str):
-    client = storage.Client()
+    client = storage.Client(credentials=credentials)
     bucket = client.bucket(BUCKET_NAME)
     blob = bucket.blob(blob_name)
 
