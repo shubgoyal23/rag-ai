@@ -16,6 +16,15 @@ def get_redis_connection() -> Redis:
 
 redis_conn = get_redis_connection()
 
+def redis_list_add(key: str, value: str) -> bool:
+    try:
+        if redis_conn.ping():
+            redis_conn.lpush(key, value)
+            return True
+    except RedisError as e:
+        print(f"Redis error: {e}")
+    return False
+
 def redis_queue_add(job_id: str, user_id: str, task_function: str, input: str, doc_id: str) -> bool:
     """
     Add a job to the queue.
@@ -69,12 +78,12 @@ def redis_get_queue_item(timeout: int = 15) -> str | None:
         if redis_conn.ping():
             task = redis_conn.brpop("task_queue", timeout=timeout)
             if task:
+                redis_list_add("task_processed", task[1])
                 return task[1]
     except RedisError as e:
-        # Log error appropriately in production
+        # Log error appropriately in production 
         print(f"Redis error: {e}")
     return None
-
 
 def redis_queue_data_change_status(job_id: str, status: str, response: str) -> Dict[str, Any] | str:
     try:

@@ -3,7 +3,7 @@ import os
 from typing import Any, Dict
 from helpers.llm import chat_completion, create_embedding
 from helpers.milvus import insert_vector_data, search_similar_text
-from helpers.redis import redis_queue_data_change_status
+from helpers.redis import redis_list_add, redis_queue_data_change_status
 from helpers.storage import delete_file_from_gcs, download_from_gcs
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import (
@@ -40,12 +40,14 @@ def process_doc_handler(job_id: str, job_data: Dict[str, Any]):
         doc = loader.load()
         
         text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=400
+            chunk_size=1000,
+            chunk_overlap=400
         )
         split_docs = text_splitter.split_documents(documents=doc)
         os.remove(temp_path)
-        delete_file_from_gcs(file_name)
+        if not delete_file_from_gcs(job_data["doc_id"]):
+            redis_list_add("failed:delete_file", job_data["doc_id"])
+            
         data = []
         
         for doc in split_docs:
